@@ -1,27 +1,31 @@
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status
 from app.database import SessionLocal
 from app.models import Customer
 from app.schemas import CustomerCreate
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
-
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def create_customer(customer: CustomerCreate):
     db = SessionLocal()
+    try:
+        existing = db.query(Customer).filter(Customer.email == customer.email).first()
 
-    existing = db.query(Customer).filter(Customer.email == customer.email).first()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already exists")
 
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already exists")
+        db_customer = Customer(**customer.dict())
+        db.add(db_customer)
+        db.commit()
+        db.refresh(db_customer)
 
-    db_customer = Customer(**customer.dict())
-
-    db.add(db_customer)
-    db.commit()
-    db.refresh(db_customer)
-
-    return db_customer
+        return db_customer
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/")
 def get_customers():
