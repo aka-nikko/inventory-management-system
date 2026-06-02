@@ -3,6 +3,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
 import { toast } from "react-toastify";
+import ConfirmationModal from "../components/ConfirmationModal";
 import { useAppContext } from "../context/AppContext";
 
 export default function Orders() {
@@ -15,6 +16,8 @@ export default function Orders() {
   const [selectedQty, setSelectedQty] = useState(1);
   const [items, setItems] = useState([]);
   const [orderDetails, setOrderDetails] = useState({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmOrderId, setConfirmOrderId] = useState(null);
 
   useEffect(() => {
     load();
@@ -130,6 +133,26 @@ export default function Orders() {
     }
   };
 
+  const openConfirm = (orderId) => {
+    setConfirmOrderId(orderId);
+    setConfirmOpen(true);
+  };
+
+  const removeConfirmed = async (orderId) => {
+    const prev = orders;
+    setOrders(orders.filter(o=>o.id !== orderId));
+    setConfirmOpen(false);
+    try {
+      await api.delete(`/orders/${orderId}`);
+      toast.success("Order deleted");
+    } catch (e) {
+      console.error("Order delete error:", e);
+      setOrders(prev);
+      toast.error("Failed to delete order");
+    }
+    load();
+  };
+
   return (
     <div className="container">
       {error && (
@@ -204,6 +227,7 @@ export default function Orders() {
               <p>Total: ₹{order.total_amount}</p>
               <div style={{display:'flex',gap:10}}>
                 <button onClick={()=>viewDetails(order.id)}>View Details</button>
+                <button onClick={()=>openConfirm(order.id)} style={{background:'#900'}}>Delete</button>
               </div>
 
               {orderDetails[order.id] && (
@@ -243,6 +267,13 @@ export default function Orders() {
             </div>
           ))}
         </div>
+        <ConfirmationModal
+          open={confirmOpen}
+          title="Delete order"
+          message="Delete this order? This will restore stock and cannot be undone."
+          onConfirm={() => removeConfirmed(confirmOrderId)}
+          onCancel={() => setConfirmOpen(false)}
+        />
       </section>
     </div>
   );

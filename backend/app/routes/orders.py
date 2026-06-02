@@ -60,10 +60,16 @@ def create_order(order: OrderCreate):
 def get_orders():
     db = SessionLocal()
     orders = db.query(Order).all()
-    # return minimal info
     result = []
+    from app.models import Customer
     for o in orders:
-        result.append({"id": str(o.id), "customer_id": str(o.customer_id), "total_amount": o.total_amount})
+        cust = db.query(Customer).filter(Customer.id == o.customer_id).first()
+        result.append({
+            "id": str(o.id),
+            "customer_id": str(o.customer_id),
+            "customer_name": cust.full_name if cust else None,
+            "total_amount": o.total_amount
+        })
     return result
 
 @router.get("/{order_id}")
@@ -103,6 +109,9 @@ def delete_order(order_id: str):
             prod = db.query(Product).filter(Product.id == it.product_id).first()
             if prod:
                 prod.quantity += it.quantity
+
+        # delete order_items via bulk delete to ensure DB removes them before deleting order
+        db.query(OrderItem).filter(OrderItem.order_id == order.id).delete(synchronize_session=False)
 
         db.delete(order)
         db.commit()
