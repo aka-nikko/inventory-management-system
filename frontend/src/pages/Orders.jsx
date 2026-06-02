@@ -37,8 +37,14 @@ export default function Orders() {
   };
 
   const create = async () => {
-    if(!customerId) return;
-    if(items.length === 0) return alert("Add at least one item to the order");
+    if(!customerId) {
+      toast.error("Select a customer");
+      return;
+    }
+    if(items.length === 0) {
+      toast.error("Add at least one item to the order");
+      return;
+    }
     setError(null);
     const total = items.reduce((s,it)=> s + (Number(it.price)||0)*Number(it.quantity), 0);
     const tempId = `temp-${Date.now()}`;
@@ -76,19 +82,21 @@ export default function Orders() {
   };
 
   const addItem = () => {
-    if(!selectedProduct) return;
-    const pid = Number(selectedProduct);
+    if(!selectedProduct) { toast.error("Select a product"); return; }
+    const pid = String(selectedProduct);
     const qty = Number(selectedQty) || 1;
-    const prod = products.find(p=>p.id === pid);
-    if(!prod) return;
+    const prod = products.find(p=>String(p.id) === pid);
+    if(!prod) { toast.error("Selected product not found"); return; }
 
-    // merge if already present
-    const existing = items.find(it=>it.product_id === pid);
-    if(existing) {
-      setItems(items.map(it=> it.product_id === pid ? {...it, quantity: it.quantity + qty} : it));
-    } else {
-      setItems([...items, { product_id: pid, name: prod.name, quantity: qty, price: prod.price }]);
-    }
+    setItems(prev => {
+      const existing = prev.find(it=>String(it.product_id) === pid);
+      if (existing) {
+        return prev.map(it=> String(it.product_id) === pid ? {...it, quantity: it.quantity + qty} : it);
+      }
+      return [...prev, { product_id: pid, name: prod.name, quantity: qty, price: prod.price }];
+    });
+    toast.success("Item added");
+    setSelectedProduct("");
   };
 
   const removeItem = (product_id) => {
@@ -124,13 +132,13 @@ export default function Orders() {
 
       <section className="card" style={{marginBottom:20}}>
         <h2>Create Order</h2>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 120px',gap:10}}>
           <div>
             <label>Customer</label>
             <select value={customerId} onChange={e=>setCustomerId(e.target.value)}>
               <option value="">Select Customer</option>
               {customers.map(customer=>(
-                <option value={customer.id} key={customer.id}>{customer.full_name}</option>
+                <option value={String(customer.id)} key={customer.id}>{customer.full_name}</option>
               ))}
             </select>
           </div>
@@ -140,7 +148,7 @@ export default function Orders() {
             <select value={selectedProduct} onChange={e=>setSelectedProduct(e.target.value)}>
               <option value="">Select Product</option>
               {products.map(p=> (
-                <option value={p.id} key={p.id}>{p.name} - ₹{p.price} (Stock: {p.quantity})</option>
+                <option value={String(p.id)} key={p.id}>{p.name} - ₹{p.price} (Stock: {p.quantity})</option>
               ))}
             </select>
           </div>
@@ -150,7 +158,7 @@ export default function Orders() {
             <input type="number" value={selectedQty} min={1} onChange={e=>setSelectedQty(e.target.value)} />
           </div>
 
-          <div style={{alignSelf:'end'}}>
+          <div style={{gridColumn:'1 / -1', display:'flex', justifyContent:'flex-end'}}>
             <button type="button" onClick={addItem}>Add Item</button>
           </div>
         </div>
