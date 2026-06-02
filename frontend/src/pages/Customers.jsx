@@ -1,9 +1,11 @@
 
+import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
     full_name:"",
     email:"",
@@ -15,8 +17,14 @@ export default function Customers() {
   }, []);
 
   const load = async () => {
-    const res = await api.get("/customers/");
-    setCustomers(res.data);
+    setError(null);
+    try {
+      const res = await api.get("/customers/");
+      setCustomers(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Customers load error:", e);
+      setError(String(e));
+    }
   };
 
   const submit = async (e) => {
@@ -35,6 +43,12 @@ export default function Customers() {
 
   return (
     <div className="container">
+      {error && (
+        <div className="card" style={{border: '1px solid red'}}>
+          <strong>Error loading customers:</strong>
+          <pre style={{whiteSpace:'pre-wrap'}}>{error}</pre>
+        </div>
+      )}
       <h1>Customers</h1>
 
       <form onSubmit={submit} className="card">

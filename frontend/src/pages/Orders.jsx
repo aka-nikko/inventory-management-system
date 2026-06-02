@@ -1,10 +1,12 @@
 
+import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [error, setError] = useState(null);
   const [customerId, setCustomerId] = useState("");
 
   useEffect(() => {
@@ -12,13 +14,18 @@ export default function Orders() {
   }, []);
 
   const load = async () => {
+    setError(null);
+    try {
     const [o,c] = await Promise.all([
       api.get("/orders/"),
       api.get("/customers/")
     ]);
-
-    setOrders(o.data);
-    setCustomers(c.data);
+    setOrders(Array.isArray(o.data) ? o.data : []);
+    setCustomers(Array.isArray(c.data) ? c.data : []);
+    } catch (e) {
+      console.error("Orders load error:", e);
+      setError(String(e));
+    }
   };
 
   const create = async () => {
@@ -34,6 +41,12 @@ export default function Orders() {
 
   return (
     <div className="container">
+      {error && (
+        <div className="card" style={{border: '1px solid red'}}>
+          <strong>Error loading orders:</strong>
+          <pre style={{whiteSpace:'pre-wrap'}}>{error}</pre>
+        </div>
+      )}
       <h1>Orders</h1>
 
       <div className="card">

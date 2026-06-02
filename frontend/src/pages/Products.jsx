@@ -1,9 +1,11 @@
 
+import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
 
 export default function Products() {
   const [products, setProducts] = useState([]);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
     name:"",
     sku:"",
@@ -16,8 +18,14 @@ export default function Products() {
   }, []);
 
   const load = async () => {
-    const res = await api.get("/products/");
-    setProducts(res.data);
+    setError(null);
+    try {
+      const res = await api.get("/products/");
+      setProducts(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error("Products load error:", e);
+      setError(String(e));
+    }
   };
 
   const submit = async (e) => {
@@ -46,6 +54,12 @@ export default function Products() {
 
   return (
     <div className="container">
+      {error && (
+        <div className="card" style={{border: '1px solid red'}}>
+          <strong>Error loading products:</strong>
+          <pre style={{whiteSpace:'pre-wrap'}}>{error}</pre>
+        </div>
+      )}
       <h1>Products</h1>
 
       <form onSubmit={submit} className="card">

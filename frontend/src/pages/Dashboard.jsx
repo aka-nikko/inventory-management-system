@@ -1,8 +1,10 @@
 
+import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
 
 export default function Dashboard() {
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     products:0,
     customers:0,
@@ -15,22 +17,38 @@ export default function Dashboard() {
   }, []);
 
   const load = async () => {
+    setError(null);
+    try {
     const [p,c,o] = await Promise.all([
       api.get("/products/"),
       api.get("/customers/"),
       api.get("/orders/")
     ]);
 
+    const products = Array.isArray(p.data) ? p.data : [];
+    const customers = Array.isArray(c.data) ? c.data : [];
+    const orders = Array.isArray(o.data) ? o.data : [];
+
     setStats({
-      products: p.data.length,
-      customers: c.data.length,
-      orders: o.data.length,
-      lowStock: p.data.filter(x=>x.quantity < 5).length
+      products: products.length,
+      customers: customers.length,
+      orders: orders.length,
+      lowStock: products.filter(x=>x.quantity < 5).length
     });
+    } catch (e) {
+      console.error("Dashboard load error:", e);
+      setError(String(e));
+    }
   };
 
   return (
     <div className="container">
+      {error && (
+        <div className="card" style={{border: '1px solid red'}}>
+          <strong>Error loading dashboard:</strong>
+          <pre style={{whiteSpace:'pre-wrap'}}>{error}</pre>
+        </div>
+      )}
       <h1>Dashboard</h1>
 
       <div className="grid">
