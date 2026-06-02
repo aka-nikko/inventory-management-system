@@ -2,6 +2,7 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
+import { toast } from "react-toastify";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -38,21 +39,39 @@ export default function Orders() {
   const create = async () => {
     if(!customerId) return;
     if(items.length === 0) return alert("Add at least one item to the order");
-
     setError(null);
+    const total = items.reduce((s,it)=> s + (Number(it.price)||0)*Number(it.quantity), 0);
+    const tempId = `temp-${Date.now()}`;
+    const customer = customers.find(c=>String(c.id) === String(customerId));
+    const tempOrder = {
+      id: tempId,
+      customer_id: customerId,
+      customer_name: customer?.full_name,
+      total_amount: total.toFixed(2),
+      items: items.map(it=>({product_id: it.product_id, quantity: it.quantity, name: it.name, price: it.price}))
+    };
+
+    // optimistic UI
+    setOrders(prev => [tempOrder, ...prev]);
+    setItems([]);
+    setSelectedProduct("");
+    setSelectedQty(1);
+
     try {
       await api.post("/orders/", {
         customer_id: customerId,
         items: items.map(i=>({product_id: i.product_id, quantity: i.quantity}))
       });
 
-      setItems([]);
-      setSelectedProduct("");
-      setSelectedQty(1);
+      // reconcile by reloading
       load();
+      toast.success("Order created");
     } catch (e) {
       console.error("Create order error:", e);
       setError(String(e));
+      // remove optimistic order
+      setOrders(prev => prev.filter(o=>o.id !== tempId));
+      toast.error("Failed to create order");
     }
   };
 
@@ -89,6 +108,7 @@ export default function Orders() {
     } catch (e) {
       console.error("Order details error:", e);
       setError(String(e));
+      toast.error("Failed to load order details");
     }
   };
 
@@ -171,7 +191,35 @@ export default function Orders() {
               {orderDetails[order.id] && (
                 <div style={{marginTop:10}}>
                   <h4>Order Details</h4>
-                  <pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(orderDetails[order.id], null, 2)}</pre>
+                  {orderDetails[order.id].items && Array.isArray(orderDetails[order.id].items) ? (
+                    <div>
+                      <table style={{width:'100%',borderCollapse:'collapse'}}>
+                        <thead>
+                          <tr>
+                            <th style={{textAlign:'left',borderBottom:'1px solid #ddd'}}>Product</th>
+                            <th style={{textAlign:'right',borderBottom:'1px solid #ddd'}}>Qty</th>
+                            <th style={{textAlign:'right',borderBottom:'1px solid #ddd'}}>Price</th>
+                            <th style={{textAlign:'right',borderBottom:'1px solid #ddd'}}>Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {orderDetails[order.id].items.map((it, idx) => (
+                            <tr key={idx}>
+                              <td>{it.product_name || it.product?.name || it.product_id}</td>
+                              <td style={{textAlign:'right'}}>{it.quantity}</td>
+                              <td style={{textAlign:'right'}}>₹{it.price ?? it.product?.price ?? 0}</td>
+                              <td style={{textAlign:'right'}}>₹{(it.quantity * (it.price ?? it.product?.price ?? 0)).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div style={{textAlign:'right',marginTop:8}}>
+                        <strong>Total: ₹{orderDetails[order.id].total_amount ?? order.total_amount}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(orderDetails[order.id], null, 2)}</pre>
+                  )}
                 </div>
               )}
             </div>

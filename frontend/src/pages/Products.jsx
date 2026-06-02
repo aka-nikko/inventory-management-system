@@ -2,6 +2,8 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
+import { toast } from "react-toastify";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -13,6 +15,8 @@ export default function Products() {
     quantity:""
   });
   const [editing, setEditing] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmProductId, setConfirmProductId] = useState(null);
 
   useEffect(() => {
     load();
@@ -50,15 +54,32 @@ export default function Products() {
 
       setForm({ name:"", sku:"", price:"", quantity:"" });
       load();
+      toast.success(editing ? "Product updated" : "Product added");
     } catch (e) {
       console.error("Products submit error:", e);
       setError(String(e));
+      toast.error("Failed to save product");
     }
   };
 
-  const remove = async (id) => {
-    await api.delete(`/products/${id}`);
+  const removeConfirmed = async (id) => {
+    const prev = products;
+    setProducts(products.filter(p=>p.id !== id));
+    setConfirmOpen(false);
+    try {
+      await api.delete(`/products/${id}`);
+      toast.success("Product deleted");
+    } catch (e) {
+      console.error("Product delete error:", e);
+      setProducts(prev);
+      toast.error("Failed to delete product");
+    }
     load();
+  };
+
+  const openConfirm = (id) => {
+    setConfirmProductId(id);
+    setConfirmOpen(true);
   };
 
   const startEdit = (product) => {
@@ -121,12 +142,19 @@ export default function Products() {
 
               <div style={{display:'flex',gap:10}}>
                 <button onClick={()=>startEdit(product)}>Edit</button>
-                <button onClick={()=>remove(product.id)} style={{background:'#900'}}>Delete</button>
+                <button onClick={()=>openConfirm(product.id)} style={{background:'#900'}}>Delete</button>
               </div>
             </div>
           ))}
         </div>
       </section>
+      <ConfirmationModal
+        open={confirmOpen}
+        title="Delete product"
+        message="Delete this product? This action cannot be undone."
+        onConfirm={() => removeConfirmed(confirmProductId)}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }
