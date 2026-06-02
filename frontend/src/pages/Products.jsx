@@ -12,6 +12,7 @@ export default function Products() {
     price:"",
     quantity:""
   });
+  const [editing, setEditing] = useState(null);
 
   useEffect(() => {
     load();
@@ -30,26 +31,50 @@ export default function Products() {
 
   const submit = async (e) => {
     e.preventDefault();
+    setError(null);
+    try {
+      if (editing) {
+        await api.put(`/products/${editing.id}`, {
+          ...form,
+          price:Number(form.price),
+          quantity:Number(form.quantity)
+        });
+        setEditing(null);
+      } else {
+        await api.post("/products/", {
+          ...form,
+          price:Number(form.price),
+          quantity:Number(form.quantity)
+        });
+      }
 
-    await api.post("/products/", {
-      ...form,
-      price:Number(form.price),
-      quantity:Number(form.quantity)
-    });
-
-    setForm({
-      name:"",
-      sku:"",
-      price:"",
-      quantity:""
-    });
-
-    load();
+      setForm({ name:"", sku:"", price:"", quantity:"" });
+      load();
+    } catch (e) {
+      console.error("Products submit error:", e);
+      setError(String(e));
+    }
   };
 
   const remove = async (id) => {
     await api.delete(`/products/${id}`);
     load();
+  };
+
+  const startEdit = (product) => {
+    setEditing(product);
+    setForm({
+      name: product.name || "",
+      sku: product.sku || "",
+      price: product.price != null ? String(product.price) : "",
+      quantity: product.quantity != null ? String(product.quantity) : ""
+    });
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setForm({ name:"", sku:"", price:"", quantity:"" });
   };
 
   return (
@@ -62,36 +87,46 @@ export default function Products() {
       )}
       <h1>Products</h1>
 
-      <form onSubmit={submit} className="card">
-        <input placeholder="Name" value={form.name}
-          onChange={e=>setForm({...form,name:e.target.value})}/>
+      <section style={{marginBottom:20}}>
+        <h2>{editing ? "Edit Product" : "Add Product"}</h2>
+        <form onSubmit={submit} className="card">
+          <input placeholder="Name" value={form.name}
+            onChange={e=>setForm({...form,name:e.target.value})}/>
 
-        <input placeholder="SKU" value={form.sku}
-          onChange={e=>setForm({...form,sku:e.target.value})}/>
+          <input placeholder="SKU" value={form.sku}
+            onChange={e=>setForm({...form,sku:e.target.value})}/>
 
-        <input placeholder="Price" type="number" value={form.price}
-          onChange={e=>setForm({...form,price:e.target.value})}/>
+          <input placeholder="Price" type="number" value={form.price}
+            onChange={e=>setForm({...form,price:e.target.value})}/>
 
-        <input placeholder="Quantity" type="number" value={form.quantity}
-          onChange={e=>setForm({...form,quantity:e.target.value})}/>
+          <input placeholder="Quantity" type="number" value={form.quantity}
+            onChange={e=>setForm({...form,quantity:e.target.value})}/>
 
-        <button>Add Product</button>
-      </form>
-
-      <div className="grid">
-        {products.map(product => (
-          <div key={product.id} className="card">
-            <h3>{product.name}</h3>
-            <p>{product.sku}</p>
-            <p>₹{product.price}</p>
-            <p>Stock: {product.quantity}</p>
-
-            <button onClick={()=>remove(product.id)}>
-              Delete
-            </button>
+          <div style={{display:'flex',gap:10}}>
+            <button>{editing ? "Update Product" : "Add Product"}</button>
+            {editing && <button type="button" onClick={cancelEdit} style={{background:'#777'}}>Cancel</button>}
           </div>
-        ))}
-      </div>
+        </form>
+      </section>
+
+      <section>
+        <h2>Product List</h2>
+        <div className="grid">
+          {products.map(product => (
+            <div key={product.id} className="card">
+              <h3>{product.name}</h3>
+              <p>{product.sku}</p>
+              <p>₹{product.price}</p>
+              <p>Stock: {product.quantity}</p>
+
+              <div style={{display:'flex',gap:10}}>
+                <button onClick={()=>startEdit(product)}>Edit</button>
+                <button onClick={()=>remove(product.id)} style={{background:'#900'}}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

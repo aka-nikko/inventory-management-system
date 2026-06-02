@@ -29,16 +29,27 @@ export default function Customers() {
 
   const submit = async (e) => {
     e.preventDefault();
+    setError(null);
+    try {
+      await api.post("/customers/", form);
 
-    await api.post("/customers/", form);
+      setForm({ full_name:"", email:"", phone:"" });
+      load();
+    } catch (e) {
+      console.error("Customers submit error:", e);
+      setError(String(e));
+    }
+  };
 
-    setForm({
-      full_name:"",
-      email:"",
-      phone:""
-    });
-
-    load();
+  const remove = async (id) => {
+    setError(null);
+    try {
+      await api.delete(`/customers/${id}`);
+      load();
+    } catch (e) {
+      console.error("Customers delete error:", e);
+      setError(String(e));
+    }
   };
 
   return (
@@ -51,7 +62,9 @@ export default function Customers() {
       )}
       <h1>Customers</h1>
 
-      <form onSubmit={submit} className="card">
+      <section style={{marginBottom:20}}>
+        <h2>Add Customer</h2>
+        <form onSubmit={submit} className="card">
         <input placeholder="Full Name" value={form.full_name}
           onChange={e=>setForm({...form,full_name:e.target.value})}/>
 
@@ -62,17 +75,24 @@ export default function Customers() {
           onChange={e=>setForm({...form,phone:e.target.value})}/>
 
         <button>Add Customer</button>
-      </form>
+        </form>
+      </section>
 
-      <div className="grid">
-        {customers.map(customer => (
-          <div className="card" key={customer.id}>
-            <h3>{customer.full_name}</h3>
-            <p>{customer.email}</p>
-            <p>{customer.phone}</p>
-          </div>
-        ))}
-      </div>
+      <section>
+        <h2>Customer List</h2>
+        <div className="grid">
+          {customers.map(customer => (
+            <div className="card" key={customer.id}>
+              <h3>{customer.full_name}</h3>
+              <p>{customer.email}</p>
+              <p>{customer.phone}</p>
+              <div style={{display:'flex',gap:10}}>
+                <button onClick={()=>remove(customer.id)} style={{background:'#900'}}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
