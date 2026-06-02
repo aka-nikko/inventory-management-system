@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../components/ConfirmationModal";
+import { useAppContext } from "../context/AppContext";
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -17,15 +18,16 @@ export default function Customers() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmCustomerId, setConfirmCustomerId] = useState(null);
 
+  const { customers: ctxCustomers, loadCustomers } = useAppContext();
+
   useEffect(() => {
-    load();
-  }, []);
+    setCustomers(ctxCustomers);
+  }, [ctxCustomers]);
 
   const load = async () => {
     setError(null);
     try {
-      const res = await api.get("/customers/");
-      setCustomers(Array.isArray(res.data) ? res.data : []);
+      await loadCustomers();
     } catch (e) {
       console.error("Customers load error:", e);
       setError(String(e));
@@ -48,7 +50,7 @@ export default function Customers() {
       await api.post("/customers/", form);
 
       setForm({ full_name:"", email:"", phone:"" });
-      load();
+      await loadCustomers();
       toast.success("Customer added");
     } catch (e) {
       console.error("Customers submit error:", e);
@@ -69,7 +71,7 @@ export default function Customers() {
       setCustomers(prev);
       toast.error("Failed to delete customer");
     }
-    load();
+    await loadCustomers();
   };
 
   const openConfirm = (id) => {

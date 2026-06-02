@@ -3,6 +3,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
 import { toast } from "react-toastify";
+import { useAppContext } from "../context/AppContext";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -19,17 +20,26 @@ export default function Orders() {
     load();
   }, []);
 
+  const { products: ctxProducts, customers: ctxCustomers, loadProducts, loadCustomers } = useAppContext();
+
+  useEffect(() => {
+    setProducts(ctxProducts);
+  }, [ctxProducts]);
+
+  useEffect(() => {
+    setCustomers(ctxCustomers);
+  }, [ctxCustomers]);
+
   const load = async () => {
     setError(null);
     try {
-    const [o,c,p] = await Promise.all([
-      api.get("/orders/"),
-      api.get("/customers/"),
-      api.get("/products/")
-    ]);
-    setOrders(Array.isArray(o.data) ? o.data : []);
-    setCustomers(Array.isArray(c.data) ? c.data : []);
-    setProducts(Array.isArray(p.data) ? p.data : []);
+      const [o] = await Promise.all([
+        api.get("/orders/")
+      ]);
+
+      setOrders(Array.isArray(o.data) ? o.data : []);
+      // ensure context has latest products/customers
+      await Promise.all([loadProducts(), loadCustomers()]);
     } catch (e) {
       console.error("Orders load error:", e);
       setError(String(e));

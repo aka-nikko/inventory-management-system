@@ -7,6 +7,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import "./styles.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { AppProvider } from "./context/AppContext";
 
 window.addEventListener("error", (e) => {
   console.error("Global error:", e.error || e.message, e);
@@ -18,9 +19,11 @@ window.addEventListener("unhandledrejection", (e) => {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-    <ToastContainer position="top-right" />
+    <AppProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+      <ToastContainer position="top-right" />
+    </AppProvider>
   </BrowserRouter>
 );

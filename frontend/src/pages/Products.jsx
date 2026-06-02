@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../components/ConfirmationModal";
+import { useAppContext } from "../context/AppContext";
 
 export default function Products() {
   const [products, setProducts] = useState([]);
@@ -19,14 +20,19 @@ export default function Products() {
   const [confirmProductId, setConfirmProductId] = useState(null);
 
   useEffect(() => {
+    // load from context
     load();
   }, []);
+  const { products: ctxProducts, loadProducts } = useAppContext();
+
+  useEffect(() => {
+    setProducts(ctxProducts);
+  }, [ctxProducts]);
 
   const load = async () => {
     setError(null);
     try {
-      const res = await api.get("/products/");
-      setProducts(Array.isArray(res.data) ? res.data : []);
+      await loadProducts();
     } catch (e) {
       console.error("Products load error:", e);
       setError(String(e));

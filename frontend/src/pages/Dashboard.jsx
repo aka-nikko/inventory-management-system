@@ -2,6 +2,7 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import api from "../api";
+import { useAppContext } from "../context/AppContext";
 
 export default function Dashboard() {
   const [error, setError] = useState(null);
@@ -11,30 +12,26 @@ export default function Dashboard() {
     orders:0,
     lowStock:0
   });
+  const { loadProducts, loadCustomers } = useAppContext();
 
   useEffect(() => {
     load();
   }, []);
-
   const load = async () => {
     setError(null);
     try {
-    const [p,c,o] = await Promise.all([
-      api.get("/products/"),
-      api.get("/customers/"),
-      api.get("/orders/")
-    ]);
+        const o = await api.get("/orders/");
+        const orders = Array.isArray(o.data) ? o.data : [];
+        // load shared products/customers lists
+        const products = await loadProducts();
+        const customers = await loadCustomers();
 
-    const products = Array.isArray(p.data) ? p.data : [];
-    const customers = Array.isArray(c.data) ? c.data : [];
-    const orders = Array.isArray(o.data) ? o.data : [];
-
-    setStats({
-      products: products.length,
-      customers: customers.length,
-      orders: orders.length,
-      lowStock: products.filter(x=>x.quantity < 5).length
-    });
+      setStats({
+        products: products.length,
+        customers: customers.length,
+        orders: orders.length,
+        lowStock: products.filter(x=>x.quantity < 5).length
+      });
     } catch (e) {
       console.error("Dashboard load error:", e);
       setError(String(e));
