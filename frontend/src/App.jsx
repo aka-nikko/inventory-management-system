@@ -1,32 +1,31 @@
 
-import React, { useEffect, useState } from 'react'
-import axios from 'axios'
-
-const API = 'http://localhost:8000'
+import { Routes, Route, Link } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import Customers from "./pages/Customers";
+import Orders from "./pages/Orders";
 
 export default function App() {
-  const [products, setProducts] = useState([])
-
-  useEffect(() => {
-    fetchProducts()
-  }, [])
-
-  const fetchProducts = async () => {
-    const res = await axios.get(`${API}/products/`)
-    setProducts(res.data)
-  }
-
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Inventory Management System</h1>
+    <div>
+      <nav style={{
+        display: "flex",
+        gap: "20px",
+        padding: "20px",
+        background: "black"
+      }}>
+        <Link to="/" style={{color:"white"}}>Dashboard</Link>
+        <Link to="/products" style={{color:"white"}}>Products</Link>
+        <Link to="/customers" style={{color:"white"}}>Customers</Link>
+        <Link to="/orders" style={{color:"white"}}>Orders</Link>
+      </nav>
 
-      <h2>Products</h2>
-
-      {products.map((p) => (
-        <div key={p.id}>
-          <strong>{p.name}</strong> - ₹{p.price} - Stock: {p.quantity}
-        </div>
-      ))}
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/orders" element={<Orders />} />
+      </Routes>
     </div>
-  )
+  );
 }
